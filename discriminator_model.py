@@ -35,6 +35,7 @@ class Discriminator(tf.keras.Model):
         x = self.conv1(encoded_image)
         x = self.leakyrelu1(x)
 
+        # check concatenation
         x = tf.concat([x, label], axis=3)
 
         x = self.conv2(x)
