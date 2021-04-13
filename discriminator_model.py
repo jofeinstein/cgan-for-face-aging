@@ -21,7 +21,7 @@ class Discriminator(tf.keras.Model):
         self.batchnorm2 = BatchNormalization()
         self.leakyrelu3 = LeakyReLU()
 
-        self.conv4 = Conv2D(256, kernel_size=3, strides=2, padding='same')
+        self.conv4 = Conv2D(512, kernel_size=3, strides=2, padding='same')
         self.batchnorm3 = BatchNormalization()
         self.leakyrelu4 = LeakyReLU()
 
