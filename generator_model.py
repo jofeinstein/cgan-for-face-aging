@@ -1,6 +1,6 @@
 import numpy
 import tensorflow as tf
-from tensorflow.keras.layers import Dense, LeakyReLU, Dropout, BatchNormalization, UpSampling2D, Conv2D, Activation
+from tensorflow.keras.layers import Dense, LeakyReLU, Dropout, BatchNormalization, UpSampling2D, Conv2D, Activation, Embedding, Reshape
 
 
 class Generator(tf.keras.Model):
@@ -10,6 +10,8 @@ class Generator(tf.keras.Model):
         super(Generator, self).__init__()
 
         self.optimizer = tf.keras.optimizers.Adam()
+
+        self.reshape = Reshape((8,8,32))
 
         self.dense1 = Dense(2048)
         self.leakyrelu1 = LeakyReLU()
@@ -32,11 +34,21 @@ class Generator(tf.keras.Model):
     def call(self, encoded_image, label):
         """ Passes input image through the network. """
 
-        x = tf.concat([encoded_image, label], 1)
+        #label = self.embedding(label)
+        #label = self.dense_embed(label)
+
+        print(label)
+        print(encoded_image)
+
+        x = tf.concat([encoded_image, label], axis=1)
+        print(x)
 
         x = self.dense1(x)
         x = self.leakyrelu1(x)
         x = self.dropout1(x)
+
+        x = self.reshape(x)
+        print(x)
 
         x = self.upsample1(x)
         x = self.conv1(x)
@@ -51,7 +63,7 @@ class Generator(tf.keras.Model):
         x = self.upsample3(x)
         x = self.conv3(x)
         x = self.tanh(x)
-
+        print(x)
         return x
 
     def loss_function(self, y_true, y_pred):
