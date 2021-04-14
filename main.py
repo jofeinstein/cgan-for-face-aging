@@ -6,12 +6,7 @@ from discriminator_model import Discriminator
 from generator_model import Generator
 from fr_model import FaceRecognition
 import argparse
-
-## load in data
-
-## build and compile generator, discriminator, adversarial networks
-
-## 3 training steps:
+import os
 
 
 def getArgs():
@@ -26,6 +21,9 @@ def getArgs():
                         default=25,
                         required=False)
     parser.add_argument('-batch_size',
+                        default=256,
+                        required=False)
+    parser.add_argument('-save_dir',
                         default=256,
                         required=False)
     return parser.parse_args()
@@ -63,11 +61,11 @@ def compile_gen_disc():
     return generator, discriminator
 
 
-def gen_fake_data():
-    noise1 = np.random.normal(0, 1, size=(args.batch_size, latent_dim))
-    noise2 = np.random.normal(0, 1, size=(args.batch_size, latent_dim))
+def gen_fake_data(num_ex=args.batch_size):
+    noise1 = np.random.normal(0, 1, size=(num_ex, latent_dim))
+    noise2 = np.random.normal(0, 1, size=(num_ex, latent_dim))
 
-    f_labels = np.random.randint(0, num_classes-1, args.batch_size)
+    f_labels = np.random.randint(0, num_classes-1, num_ex)
     f_labels_one_hot = tf.one_hot(np.asarray(f_labels), depth=num_classes)
 
     return noise1, noise2, f_labels_one_hot
@@ -87,7 +85,16 @@ def main():
     fake_labels = np.zeros((args.batch_size, 1))
 
     # initial gan training
-    for epoch in range(args.epoch):
+
+    d_loss_real_lst = []
+    d_loss_fake_lst = []
+    gan_loss_lst = []
+
+    for epoch in range(args.num_epochs):
+        d_loss_real_batch_lst = []
+        d_loss_fake_batch_lst = []
+        gan_loss_batch_lst = []
+
         for x in range(0, len(label_list), args.batch_size):
             batch_images = image_array[x: x + args.batch_size]
             batch_labels = label_one_hot[x: x + args.batch_size]
@@ -99,8 +106,35 @@ def main():
             d_loss_real = discriminator.train_on_batch([batch_images, batch_labels], true_labels)
             d_loss_fake = discriminator.train_on_batch([gen_images, batch_labels], fake_labels)
 
+            d_loss_real_batch_lst.append(d_loss_real)
+            d_loss_fake_batch_lst.append(d_loss_fake)
+
             # training generator
             gan_loss = gan.train_on_batch([noise2, f_labels_one_hot], true_labels)
+            gan_loss_batch_lst.append(gan_loss)
+
+        d_loss_real_lst.append(np.mean(d_loss_real_batch_lst))
+        d_loss_fake_lst.append(np.mean(d_loss_fake_batch_lst))
+        gan_loss_lst.append(np.mean(gan_loss_batch_lst))
+
+        # generate 5 test images every 5 epochs and save
+        if (epoch + 1) % 5 == 0:
+            noise1, noise2, f_labels_one_hot = gen_fake_data(num_ex=5)
+            gen_images = generator.predict_on_batch([noise1, f_labels_one_hot])
+
+            for i, img_array in enumerate(gen_images):
+                dirr = args.save_dir + '/epoch' + str(epoch) + '/'
+                if not os.path.exists(dirr):
+                    os.makedirs(dirr)
+
+                img = Image.fromarray(img_array)
+                img.save(dirr + str(i) + 'test.png')
+
+        avg_d_loss = (np.mean(d_loss_real_batch_lst) + np.mean(d_loss_fake_batch_lst)) / 2
+        print("Epoch: {} / {}        Discriminator Loss: {}      GAN Loss: {}".format(epoch+1, args.num_epochs, avg_d_loss, np.mean(gan_loss_batch_lst)))
+
+    generator.save_weights("generator.h5")
+    discriminator.save_weights("discriminator.h5")
 
 
 main()
