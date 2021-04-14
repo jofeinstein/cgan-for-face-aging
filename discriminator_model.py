@@ -1,7 +1,8 @@
 import tensorflow as tf
 import numpy as np
 from tensorflow.keras.layers import \
-    Conv2D, MaxPool2D, Dropout, Flatten, Dense, LeakyReLU, BatchNormalization
+    Conv2D, MaxPool2D, Dropout, Flatten, Dense, LeakyReLU, BatchNormalization, Embedding, Reshape
+
 
 class Discriminator(tf.keras.Model):
     def __init__(self):
@@ -9,6 +10,10 @@ class Discriminator(tf.keras.Model):
         super(Discriminator, self).__init__()
 
         self.optimizer = tf.keras.optimizers.Adam()
+
+        self.embedding = Embedding(input_dim=6, output_dim=16)
+        self.dense_e = Dense(1024)
+        self.reshape = Reshape((32, 32, 6))
 
         self.conv1 = Conv2D(64, kernel_size=3, strides=2, padding='same')
         self.leakyrelu1 = LeakyReLU()
@@ -35,7 +40,11 @@ class Discriminator(tf.keras.Model):
         x = self.conv1(encoded_image)
         x = self.leakyrelu1(x)
 
-        # check concatenation
+        label = self.embedding(label)
+        label = self.dense_e(label)
+        label = self.reshape(label)
+
+        # check concatenation: FUCK
         x = tf.concat([x, label], axis=3)
 
         x = self.conv2(x)

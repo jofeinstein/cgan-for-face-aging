@@ -31,24 +31,16 @@ class Generator(tf.keras.Model):
         self.conv3 = Conv2D(filters=3, kernel_size=5, padding='same')
         self.tanh = Activation('tanh')
 
-    def call(self, encoded_image, label):
+    def call(self, latent_vector, label):
         """ Passes input image through the network. """
 
-        #label = self.embedding(label)
-        #label = self.dense_embed(label)
-
-        print(label)
-        print(encoded_image)
-
-        x = tf.concat([encoded_image, label], axis=1)
-        print(x)
+        x = tf.concat([latent_vector, label], axis=1)
 
         x = self.dense1(x)
         x = self.leakyrelu1(x)
         x = self.dropout1(x)
 
         x = self.reshape(x)
-        print(x)
 
         x = self.upsample1(x)
         x = self.conv1(x)
@@ -63,7 +55,7 @@ class Generator(tf.keras.Model):
         x = self.upsample3(x)
         x = self.conv3(x)
         x = self.tanh(x)
-        print(x)
+
         return x
 
     def loss_function(self, y_true, y_pred):
