@@ -14,13 +14,15 @@ def load_meta_data(data_dir_path, mat_file_path):
     :return: list of image paths and list of corresponding labels
     """
 
+    print("Loading meta information...")
+
     mat_file = scipy.io.loadmat(mat_file_path)
-    relative_image_path_list = mat_file['wiki'][0, 0]["full_path"][0]
+    relative_image_path_list = mat_file['imdb'][0, 0]["full_path"][0]
 
     full_image_path_list = [data_dir_path + x[0] for x in relative_image_path_list]
 
-    birthday = mat_file['wiki'][0, 0]["dob"][0]
-    photo_taken_year = mat_file['wiki'][0, 0]["photo_taken"][0]
+    birthday = mat_file['imdb'][0, 0]["dob"][0]
+    photo_taken_year = mat_file['imdb'][0, 0]["photo_taken"][0]
 
     label_list = []
 
@@ -53,7 +55,7 @@ def convert_age_to_label(age):
     return label
 
 
-def load_images_and_labels(image_path_list, image_size):
+def load_images_and_labels(image_path_list, image_size=(64, 64)):
     """
     Loads and resizes all images in dataset
 
@@ -63,12 +65,23 @@ def load_images_and_labels(image_path_list, image_size):
     """
     image_list = []
 
-    for image_path in image_path_list:
+    print('Loading images into array...')
+    for i, image_path in enumerate(image_path_list):
+        # if i == 2560:
+        #     break
+
+        if i % 1000 == 0:
+            print('{} / {}'.format(i, len(image_path_list)))
         img = Image.open(image_path)
         img = img.resize(image_size)
         img = np.array(img, dtype=np.float32)
+        img /= 255.
+
+        if len(img.shape) == 2:
+            img = np.stack([img, img, img], axis=-1)
+
         image_list.append(img)
 
-    image_array = np.asarray(image_list)
+    image_array = np.stack(image_list, axis=0)
 
     return image_array
