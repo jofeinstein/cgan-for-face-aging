@@ -17,18 +17,25 @@ def getArgs():
     parser.add_argument('-mat_file_path',
                         default='imdb_crop/imdb.mat',
                         required=False)
-    parser.add_argument('-epoch',
+    parser.add_argument('-num_epochs',
                         default=25,
                         required=False)
     parser.add_argument('-batch_size',
                         default=256,
                         required=False)
     parser.add_argument('-save_dir',
-                        default=256,
+                        default='',
                         required=False)
+    parser.add_argument('-encoder_train_size',
+                        default=2500,
+                        required=False)
+    parser.add_argument('-training_step',
+                        default=None,
+                        required=True)
     return parser.parse_args()
 
 
+# global variables
 args = getArgs()
 latent_dim = 100
 num_classes = 6
@@ -36,6 +43,13 @@ image_shape = (64, 64, 3)
 
 
 def compile_gan(generator_model, discriminator_model):
+    """
+    Compiles the cGAN model using already compiled generator and discriminator models
+
+    :param generator_model: compiled generator model
+    :param discriminator_model: compiled discriminator model
+    :return: compiled cGAN model
+    """
     discriminator_model.trainable = False
     noise = tf.keras.Input((latent_dim,))
     label = tf.keras.Input((num_classes,))
@@ -50,6 +64,11 @@ def compile_gan(generator_model, discriminator_model):
 
 
 def compile_gen_disc():
+    """
+    Compiles generator and discriminator models
+
+    :return: tuple of compiled generator and discriminator models
+    """
     generator = Generator()
     generator((tf.keras.Input(shape=(latent_dim,)), tf.keras.Input(shape=(num_classes,))))
     generator.compile(optimizer=generator.optimizer, loss='binary_crossentropy')
@@ -62,6 +81,13 @@ def compile_gen_disc():
 
 
 def gen_fake_data(num_ex=args.batch_size):
+    """
+    Generates fake data for use in cGAN training.
+    Generates two different noise vectors and
+
+    :param num_ex:
+    :return:
+    """
     noise1 = np.random.normal(0, 1, size=(num_ex, latent_dim))
     noise2 = np.random.normal(0, 1, size=(num_ex, latent_dim))
 
@@ -71,20 +97,10 @@ def gen_fake_data(num_ex=args.batch_size):
     return noise1, noise2, f_labels_one_hot
 
 
-def main():
-    # Load in data
-    full_image_path_list, label_list = load_meta_data(data_dir_path=args.data_dir_path, mat_file_path=args.mat_file_path)
-    image_array = load_images_and_labels(image_path_list=full_image_path_list)
-    label_one_hot = tf.one_hot(np.asarray(label_list), depth=num_classes)
-
-    # compile generator, discriminator, gan
-    generator, discriminator = compile_gen_disc()
-    gan = compile_gan(generator, discriminator)
-
+def gan_training(image_array, label_one_hot, generator, discriminator, gan):
+    # initial gan training
     true_labels = np.ones((args.batch_size, 1))
     fake_labels = np.zeros((args.batch_size, 1))
-
-    # initial gan training
 
     d_loss_real_lst = []
     d_loss_fake_lst = []
@@ -95,7 +111,7 @@ def main():
         d_loss_fake_batch_lst = []
         gan_loss_batch_lst = []
 
-        for x in range(0, len(label_list), args.batch_size):
+        for x in range(0, len(image_array), args.batch_size):
             batch_images = image_array[x: x + args.batch_size]
             batch_labels = label_one_hot[x: x + args.batch_size]
             noise1, noise2, f_labels_one_hot = gen_fake_data()
@@ -131,10 +147,61 @@ def main():
                 img.save(dirr + str(i) + 'test.png')
 
         avg_d_loss = (np.mean(d_loss_real_batch_lst) + np.mean(d_loss_fake_batch_lst)) / 2
-        print("Epoch: {} / {}        Discriminator Loss: {}      GAN Loss: {}".format(epoch+1, args.num_epochs, avg_d_loss, np.mean(gan_loss_batch_lst)))
+        print("Epoch: {} / {}        Discriminator Loss: {}      GAN Loss: {}".format(epoch + 1, args.num_epochs,
+                                                                                      avg_d_loss,
+                                                                                      np.mean(gan_loss_batch_lst)))
 
+    # save weights
     generator.save_weights("generator.h5")
     discriminator.save_weights("discriminator.h5")
+
+
+def encoder_training(generator):
+    # training encoder on generated images
+    encoder = Encoder()
+    encoder(tf.keras.Input((64, 64, 3)))
+    encoder.compile(optimizer=encoder.optimizer, loss='binary_crossentropy')
+    generator.load_weights("generator.h5")
+
+    r_labels = np.random.randint(0, num_classes - 1, args.encoder_train_size)
+    r_labels_one_hot = tf.one_hot(np.asarray(r_labels), depth=num_classes)
+    r_latent_v = np.random.normal(0, 1, size=(args.encoder_train_size, latent_dim))
+
+    encoder_loss_lst = []
+    for epoch in range(args.num_epochs):
+
+        encoder_loss_batch_lst = []
+        for x in range(0, args.encoder_train_size, args.batch_size):
+            batch_latent_v = r_latent_v[x: x + args.batch_size]
+            batch_labels = r_labels_one_hot[x: x + args.batch_size]
+
+            gen_images = generator.predict_on_batch([batch_latent_v, batch_labels])
+            encoder_loss = encoder.train_on_batch(gen_images, batch_latent_v)
+            encoder_loss_batch_lst.append(encoder_loss)
+
+        encoder_loss_lst.append(np.mean(encoder_loss_batch_lst))
+        print("Epoch: {} / {}        Encoder Loss: {}".format(epoch + 1, args.num_epochs,
+                                                              np.mean(encoder_loss_batch_lst)))
+
+    # save encoder weight
+    encoder.save_weights("encoder.h5")
+
+
+def main():
+    # Load in data
+    full_image_path_list, label_list = load_meta_data(args.data_dir_path, args.mat_file_path)
+    image_array = load_images_and_labels(full_image_path_list)
+    label_one_hot = tf.one_hot(np.asarray(label_list), depth=num_classes)
+
+    # compile generator, discriminator, gan
+    generator, discriminator = compile_gen_disc()
+    gan = compile_gan(generator, discriminator)
+
+    if args.training_step == 'initial_gan':
+        gan_training(image_array, label_one_hot, generator, discriminator, gan)
+
+    elif args.training_step == 'encoder':
+        encoder_training(generator)
 
 
 main()
