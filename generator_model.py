@@ -31,8 +31,10 @@ class Generator(tf.keras.Model):
         self.conv3 = Conv2D(filters=3, kernel_size=5, padding='same')
         self.tanh = Activation('tanh')
 
-    def call(self, latent_vector, label):
+    def call(self, input):
         """ Passes input image through the network. """
+
+        latent_vector, label = input
 
         x = tf.concat([latent_vector, label], axis=1)
 

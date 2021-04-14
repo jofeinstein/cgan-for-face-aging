@@ -34,8 +34,10 @@ class Discriminator(tf.keras.Model):
         self.dense = Dense(1, activation='sigmoid')
 
 
-    def call(self, encoded_image, label):
+    def call(self, input):
         """ Passes input image through the network. """
+
+        encoded_image, label = input
 
         x = self.conv1(encoded_image)
         x = self.leakyrelu1(x)
