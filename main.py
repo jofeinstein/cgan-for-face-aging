@@ -15,11 +15,11 @@ print("Num GPUs Available: ", len(tf.config.list_physical_devices('GPU')))
 def getArgs():
     parser = argparse.ArgumentParser('python')
     parser.add_argument('-data_dir_path',
-                        default=os.getcwd() + 'data/imdb_crop/',
+                        default=os.getcwd() + '/data/imdb_crop/',
                         help='path to directory containing training data',
                         required=False)
     parser.add_argument('-mat_file_path',
-                        default=os.getcwd() + 'data/imdb_crop/imdb.mat',
+                        default=os.getcwd() + '/data/imdb_crop/imdb.mat',
                         help='path to mat file downloaded from dataset',
                         required=False)
     parser.add_argument('-num_epochs',
@@ -30,7 +30,7 @@ def getArgs():
                         default=256,
                         required=False)
     parser.add_argument('-save_dir',
-                        default=os.getcwd() + 'data/',
+                        default=os.getcwd() + '/data/',
                         help='path to directory to save weights and images to',
                         required=False)
     parser.add_argument('-encoder_train_size',
@@ -42,6 +42,10 @@ def getArgs():
                         choices=['initial_cgan', 'encoder', 'optimization'],
                         default=None,
                         required=True)
+    parser.add_argument('-num_images',
+                        help='how many images to train on',
+                        default=100000,
+                        required=False)
     return parser.parse_args()
 
 
@@ -241,7 +245,7 @@ def encoder_training(generator):
 
 def main():
     # Load in data
-    full_image_path_list, label_one_hot = load_meta_data(args.data_dir_path, args.mat_file_path)
+    full_image_path_list, label_one_hot = load_meta_data(args.data_dir_path, args.mat_file_path, args.num_images)
     image_array = load_images(full_image_path_list)
 
     # compile generator, discriminator, cgan
