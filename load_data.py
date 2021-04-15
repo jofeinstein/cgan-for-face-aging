@@ -6,7 +6,7 @@ import numpy as np
 import tensorflow as tf
 
 
-def load_meta_data(data_dir_path, mat_file_path, image_num=100000):
+def load_meta_data(data_dir_path, mat_file_path, image_num=1024):
     """
     Loads paths of all images and the corresponding labels from matlab file
 
