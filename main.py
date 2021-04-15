@@ -15,11 +15,11 @@ print("Num GPUs Available: ", len(tf.config.list_physical_devices('GPU')))
 def getArgs():
     parser = argparse.ArgumentParser('python')
     parser.add_argument('-data_dir_path',
-                        default='data/imdb_crop/',
+                        default=os.getcwd() + 'data/imdb_crop/',
                         help='path to directory containing training data',
                         required=False)
     parser.add_argument('-mat_file_path',
-                        default='data/imdb_crop/imdb.mat',
+                        default=os.getcwd() + 'data/imdb_crop/imdb.mat',
                         help='path to mat file downloaded from dataset',
                         required=False)
     parser.add_argument('-num_epochs',
@@ -30,7 +30,7 @@ def getArgs():
                         default=256,
                         required=False)
     parser.add_argument('-save_dir',
-                        default='data/',
+                        default=os.getcwd() + 'data/',
                         help='path to directory to save weights and images to',
                         required=False)
     parser.add_argument('-encoder_train_size',
@@ -38,7 +38,8 @@ def getArgs():
                         help='number of examples to train encoder on',
                         required=False)
     parser.add_argument('-training_step',
-                        help='which step of training process. [initial_cgan, encoder, optimization]',
+                        help='which step of training process',
+                        choices=['initial_cgan', 'encoder', 'optimization'],
                         default=None,
                         required=True)
     return parser.parse_args()
