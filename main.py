@@ -210,6 +210,14 @@ def cgan_training(image_array, label_one_hot, generator, discriminator, cgan):
     print(d_loss2, file=out_dl2)
     print(cgan_loss_lst, file=out_cganl)
 
+    # create graphs of losses
+    plot_list(cgan_loss_lst, "generator_loss")
+    avg_discriminator_loss_lst = []
+    for i in range(len(d_loss1)):
+        avg_discriminator_loss_lst.append(np.mean([d_loss1[i], d_loss2[i]]))
+    plot_list(avg_discriminator_loss_lst, "discriminator_loss")
+
+
 
 def encoder_training(generator):
     """
@@ -256,13 +264,16 @@ def encoder_training(generator):
                                                                                       np.mean(encoder_loss_batch_lst),
                                                                                       time.time() - start_time))
 
-    # save encoder weight
+    # save encoder weight and losses
     if not os.path.exists(args.save_dir + 'weights'):
         os.makedirs(args.save_dir + 'weights')
     encoder.save_weights(args.save_dir + "weights/encoder.h5")
 
     out_el = open(args.save_dir + "training_logs/encoder_loss.txt", 'w')
     print(encoder_loss_lst, file=out_el)
+
+    # graph losses
+    plot_list(encoder_loss_lst, "encoder_loss")
 
 
 def main():
