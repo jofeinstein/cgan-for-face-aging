@@ -9,17 +9,17 @@ import argparse
 import os
 
 print("Num GPUs Available: ", len(tf.config.list_physical_devices('GPU')))
-tf.debugging.set_log_device_placement(True)
+#tf.debugging.set_log_device_placement(True)
 
 
 def getArgs():
     parser = argparse.ArgumentParser('python')
     parser.add_argument('-data_dir_path',
-                        default='imdb_crop/',
+                        default='data/imdb_crop/',
                         help='path to directory containing training data',
                         required=False)
     parser.add_argument('-mat_file_path',
-                        default='imdb_crop/imdb.mat',
+                        default='data/imdb_crop/imdb.mat',
                         help='path to mat file downloaded from dataset',
                         required=False)
     parser.add_argument('-num_epochs',
@@ -30,7 +30,7 @@ def getArgs():
                         default=256,
                         required=False)
     parser.add_argument('-save_dir',
-                        default='',
+                        default='data/',
                         help='path to directory to save weights and images to',
                         required=False)
     parser.add_argument('-encoder_train_size',
@@ -123,13 +123,13 @@ def cgan_training(image_array, label_one_hot, generator, discriminator, cgan):
     true_labels = np.ones((args.batch_size, 1))
     fake_labels = np.zeros((args.batch_size, 1))
 
-    d_loss_real_lst = []
-    d_loss_fake_lst = []
+    d_loss1 = []
+    d_loss2 = []
     cgan_loss_lst = []
 
     for epoch in range(args.num_epochs):
-        d_loss_real_batch_lst = []
-        d_loss_fake_batch_lst = []
+        d_batch_loss1 = []
+        d_batch_loss2 = []
         cgan_loss_batch_lst = []
 
         for x in range(0, len(image_array), args.batch_size):
@@ -143,15 +143,15 @@ def cgan_training(image_array, label_one_hot, generator, discriminator, cgan):
             discriminator_loss_real = discriminator.train_on_batch([batch_images, batch_labels], true_labels)
             discriminator_loss_fake = discriminator.train_on_batch([gen_images, batch_labels], fake_labels)
 
-            d_loss_real_batch_lst.append(discriminator_loss_real)
-            d_loss_fake_batch_lst.append(discriminator_loss_fake)
+            d_batch_loss1.append(discriminator_loss_real)
+            d_batch_loss2.append(discriminator_loss_fake)
 
             # training generator
             cgan_loss = cgan.train_on_batch([noise2, f_labels_one_hot], true_labels)
             cgan_loss_batch_lst.append(cgan_loss)
 
-        d_loss_real_lst.append(np.mean(d_loss_real_batch_lst))
-        d_loss_fake_lst.append(np.mean(d_loss_fake_batch_lst))
+        d_loss1.append(np.mean(d_batch_loss1))
+        d_loss2.append(np.mean(d_batch_loss2))
         cgan_loss_lst.append(np.mean(cgan_loss_batch_lst))
 
         # generate 5 test images every 5 epochs and save
@@ -160,21 +160,23 @@ def cgan_training(image_array, label_one_hot, generator, discriminator, cgan):
             gen_images = generator.predict_on_batch([noise1, f_labels_one_hot])
 
             for i, img_array in enumerate(gen_images):
-                dirr = args.save_dir + '/epoch' + str(epoch) + '/'
+                dirr = args.save_dir + 'training_imgs/epoch' + str(epoch) + '/'
                 if not os.path.exists(dirr):
                     os.makedirs(dirr)
 
                 img = Image.fromarray(img_array)
                 img.save(dirr + str(i) + 'test.png')
 
-        avg_d_loss = (np.mean(d_loss_real_batch_lst) + np.mean(d_loss_fake_batch_lst)) / 2
+        avg_d_loss = (np.mean(d_batch_loss1) + np.mean(d_batch_loss2)) / 2
         print("Epoch: {} / {}        Discriminator Loss: {}      cGAN Loss: {}".format(epoch + 1, args.num_epochs,
                                                                                       avg_d_loss,
                                                                                       np.mean(cgan_loss_batch_lst)))
 
     # save weights
-    generator.save_weights("generator.h5")
-    discriminator.save_weights("discriminator.h5")
+    if not os.path.exists(args.save_dir + 'weights'):
+        os.makedirs(args.save_dir + 'weights')
+    generator.save_weights(args.save_dir + "weights/generator.h5")
+    discriminator.save_weights(args.save_dir + "weights/discriminator.h5")
 
 
 def encoder_training(generator):
@@ -190,7 +192,12 @@ def encoder_training(generator):
     encoder = Encoder()
     encoder(tf.keras.Input((64, 64, 3)))
     encoder.compile(optimizer=encoder.optimizer, loss='binary_crossentropy')
-    generator.load_weights("generator.h5")
+
+    try:
+        generator.load_weights(args.save_dir + "weights/generator.h5")
+    except RuntimeError:
+        print("Could not find weights for generator. Ensure weights are stored in data/weights/generator.h5")
+
 
     # create random labels and latent vectors for training
     r_labels = np.random.randint(0, num_classes, args.encoder_train_size)
@@ -217,14 +224,15 @@ def encoder_training(generator):
                                                               np.mean(encoder_loss_batch_lst)))
 
     # save encoder weight
-    encoder.save_weights("encoder.h5")
+    if not os.path.exists(args.save_dir + 'weights'):
+        os.makedirs(args.save_dir + 'weights')
+    encoder.save_weights(args.save_dir + "weights/encoder.h5")
 
 
 def main():
     # Load in data
-    full_image_path_list, label_list = load_meta_data(args.data_dir_path, args.mat_file_path)
-    image_array = load_images_and_labels(full_image_path_list)
-    label_one_hot = tf.one_hot(np.asarray(label_list), depth=num_classes)
+    full_image_path_list, label_one_hot = load_meta_data(args.data_dir_path, args.mat_file_path)
+    image_array = load_images(full_image_path_list)
 
     # compile generator, discriminator, cgan
     generator, discriminator = compile_gen_disc()
