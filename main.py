@@ -132,7 +132,7 @@ def cgan_training(image_array, label_one_hot, generator, discriminator, cgan):
     d_loss2 = []
     cgan_loss_lst = []
 
-    for epoch in range(args.num_epochs):
+    for epoch in range(int(args.num_epochs)):
         d_batch_loss1 = []
         d_batch_loss2 = []
         cgan_loss_batch_lst = []
@@ -219,7 +219,7 @@ def encoder_training(generator):
     r_latent_v = np.random.normal(0, 1, size=(args.encoder_train_size, latent_dim))
 
     encoder_loss_lst = []
-    for epoch in range(args.num_epochs):
+    for epoch in range(int(args.num_epochs)):
         encoder_loss_batch_lst = []
 
         for x in range(0, args.encoder_train_size, args.batch_size):
