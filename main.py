@@ -179,9 +179,13 @@ def cgan_training(image_array, label_one_hot, generator, discriminator, cgan):
     generator.save_weights(args.save_dir + "weights/generator.h5")
     discriminator.save_weights(args.save_dir + "weights/discriminator.h5")
 
-    print(d_loss1, file=args.save_dir + "training_logs/dloss1.txt")
-    print(d_loss2, file=args.save_dir + "training_logs/dloss2.txt")
-    print(cgan_loss_lst, file=args.save_dir + "training_logs/cgan_loss.txt")
+    out_dl1 = open(args.save_dir + "training_logs/dloss1.txt", 'w')
+    out_dl2 = open(args.save_dir + "training_logs/dloss2.txt", 'w')
+    out_cganl = open(args.save_dir + "training_logs/cgan_loss.txt", 'w')
+
+    print(d_loss1, file=out_dl1)
+    print(d_loss2, file=out_dl2)
+    print(cgan_loss_lst, file=out_cganl)
 
 
 def encoder_training(generator):
