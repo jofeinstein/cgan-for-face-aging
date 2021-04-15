@@ -8,9 +8,10 @@ from fr_model import FaceRecognition
 import argparse
 import os
 import time
+from matplotlib import pyplot as plt
 
 print("Num GPUs Available: ", len(tf.config.list_physical_devices('GPU')))
-#tf.debugging.set_log_device_placement(True)
+# tf.debugging.set_log_device_placement(True)
 
 
 def getArgs():
@@ -59,6 +60,18 @@ args = getArgs()
 latent_dim = 100
 num_classes = 6
 image_shape = (64, 64, 3)
+
+
+def plot_list(lst, title):
+    fig = plt.figure()
+    for i in range(len(lst)):
+        plt.plot(lst[i])
+    plt.xlabel('Epoch')
+    plt.ylabel(title)
+    plt.title(title)
+    # plt.legend()
+    plt.draw()
+    fig.savefig(args.save_dir + 'training_logs/' + title + '.png', dpi=500)
 
 
 def compile_cgan(generator_model, discriminator_model):
