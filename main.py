@@ -25,9 +25,11 @@ def getArgs():
     parser.add_argument('-num_epochs',
                         default=25,
                         help='number of epochs to train for',
+                        type=int,
                         required=False)
     parser.add_argument('-batch_size',
                         default=256,
+                        type=int,
                         required=False)
     parser.add_argument('-save_dir',
                         default=os.getcwd() + '/data/',
@@ -35,6 +37,7 @@ def getArgs():
                         required=False)
     parser.add_argument('-encoder_train_size',
                         default=2500,
+                        type=int,
                         help='number of examples to train encoder on',
                         required=False)
     parser.add_argument('-training_step',
@@ -45,6 +48,7 @@ def getArgs():
     parser.add_argument('-num_images',
                         help='how many images to train on',
                         default=100000,
+                        type=int,
                         required=False)
     return parser.parse_args()
 
@@ -132,7 +136,7 @@ def cgan_training(image_array, label_one_hot, generator, discriminator, cgan):
     d_loss2 = []
     cgan_loss_lst = []
 
-    for epoch in range(int(args.num_epochs)):
+    for epoch in range(args.num_epochs):
         d_batch_loss1 = []
         d_batch_loss2 = []
         cgan_loss_batch_lst = []
@@ -184,8 +188,8 @@ def cgan_training(image_array, label_one_hot, generator, discriminator, cgan):
     generator.save_weights(args.save_dir + "weights/generator.h5")
     discriminator.save_weights(args.save_dir + "weights/discriminator.h5")
 
-    out_dl1 = open(args.save_dir + "training_logs/dloss1.txt", 'w')
-    out_dl2 = open(args.save_dir + "training_logs/dloss2.txt", 'w')
+    out_dl1 = open(args.save_dir + "training_logs/discriminator_loss1.txt", 'w')
+    out_dl2 = open(args.save_dir + "training_logs/discriminator_loss2.txt", 'w')
     out_cganl = open(args.save_dir + "training_logs/cgan_loss.txt", 'w')
 
     print(d_loss1, file=out_dl1)
@@ -219,7 +223,7 @@ def encoder_training(generator):
     r_latent_v = np.random.normal(0, 1, size=(args.encoder_train_size, latent_dim))
 
     encoder_loss_lst = []
-    for epoch in range(int(args.num_epochs)):
+    for epoch in range(args.num_epochs):
         encoder_loss_batch_lst = []
 
         for x in range(0, args.encoder_train_size, args.batch_size):
@@ -241,6 +245,9 @@ def encoder_training(generator):
     if not os.path.exists(args.save_dir + 'weights'):
         os.makedirs(args.save_dir + 'weights')
     encoder.save_weights(args.save_dir + "weights/encoder.h5")
+
+    out_el = open(args.save_dir + "training_logs/encoder_loss.txt", 'w')
+    print(encoder_loss_lst, file=out_el)
 
 
 def main():
