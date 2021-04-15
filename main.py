@@ -158,13 +158,14 @@ def cgan_training(image_array, label_one_hot, generator, discriminator, cgan):
         if (epoch + 1) % 5 == 0:
             noise1, noise2, f_labels_one_hot = gen_fake_data(num_ex=5)
             gen_images = generator.predict_on_batch([noise1, f_labels_one_hot])
-            print(gen_images.shape, type(gen_images))
-            for i, img_array in enumerate(gen_images[:5]):
+
+            for i in range(gen_images.shape[0]):
                 dirr = args.save_dir + 'training_imgs/epoch' + str(epoch) + '/'
                 if not os.path.exists(dirr):
                     os.makedirs(dirr)
 
-                img = Image.fromarray(img_array)
+                img_array = gen_images[i]
+                img = Image.fromarray(((img_array * 255).astype(np.uint8)))
                 img.save(dirr + str(i) + 'test.png')
 
         avg_d_loss = (np.mean(d_batch_loss1) + np.mean(d_batch_loss2)) / 2
@@ -172,11 +173,15 @@ def cgan_training(image_array, label_one_hot, generator, discriminator, cgan):
                                                                                       avg_d_loss,
                                                                                       np.mean(cgan_loss_batch_lst)))
 
-    # save weights
+    # save weights and losses
     if not os.path.exists(args.save_dir + 'weights'):
         os.makedirs(args.save_dir + 'weights')
     generator.save_weights(args.save_dir + "weights/generator.h5")
     discriminator.save_weights(args.save_dir + "weights/discriminator.h5")
+
+    print(d_loss1, file=args.save_dir + "training_logs/dloss1.txt")
+    print(d_loss2, file=args.save_dir + "training_logs/dloss2.txt")
+    print(cgan_loss_lst, file=args.save_dir + "training_logs/cgan_loss.txt")
 
 
 def encoder_training(generator):
