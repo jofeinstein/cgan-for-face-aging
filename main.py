@@ -7,6 +7,7 @@ from generator_model import Generator
 from fr_model import FaceRecognition
 import argparse
 import os
+import time
 
 print("Num GPUs Available: ", len(tf.config.list_physical_devices('GPU')))
 #tf.debugging.set_log_device_placement(True)
@@ -137,6 +138,7 @@ def cgan_training(image_array, label_one_hot, generator, discriminator, cgan):
         d_batch_loss1 = []
         d_batch_loss2 = []
         cgan_loss_batch_lst = []
+        start_time = time.time()
 
         for x in range(0, len(image_array), args.batch_size):
             batch_images = image_array[x: x + args.batch_size]
@@ -177,9 +179,9 @@ def cgan_training(image_array, label_one_hot, generator, discriminator, cgan):
                 img.save(dirr + str(i) + 'test.png')
 
         avg_d_loss = (np.mean(d_batch_loss1) + np.mean(d_batch_loss2)) / 2
-        print("Epoch: {} / {}        Discriminator Loss: {}      cGAN Loss: {}".format(epoch + 1, args.num_epochs,
+        print("Epoch: {} / {}        Discriminator Loss: {}      cGAN Loss: {}      Time Elapsed: {}s".format(epoch + 1, args.num_epochs,
                                                                                       avg_d_loss,
-                                                                                      np.mean(cgan_loss_batch_lst)))
+                                                                                      np.mean(cgan_loss_batch_lst), time.time() - start_time))
 
     # save weights and losses
     if not os.path.exists(args.save_dir + 'weights'):
@@ -223,6 +225,7 @@ def encoder_training(generator):
     encoder_loss_lst = []
     for epoch in range(args.num_epochs):
         encoder_loss_batch_lst = []
+        start_time = time.time()
 
         for x in range(0, args.encoder_train_size, args.batch_size):
             batch_latent_v = r_latent_v[x: x + args.batch_size]
@@ -236,8 +239,9 @@ def encoder_training(generator):
             encoder_loss_batch_lst.append(encoder_loss)
 
         encoder_loss_lst.append(np.mean(encoder_loss_batch_lst))
-        print("Epoch: {} / {}        Encoder Loss: {}".format(epoch + 1, args.num_epochs,
-                                                              np.mean(encoder_loss_batch_lst)))
+        print("Epoch: {} / {}        Encoder Loss: {}       Time Elapsed: {}s".format(epoch + 1, args.num_epochs,
+                                                                                      np.mean(encoder_loss_batch_lst),
+                                                                                      time.time() - start_time))
 
     # save encoder weight
     if not os.path.exists(args.save_dir + 'weights'):
