@@ -158,8 +158,8 @@ def cgan_training(image_array, label_one_hot, generator, discriminator, cgan):
         if (epoch + 1) % 5 == 0:
             noise1, noise2, f_labels_one_hot = gen_fake_data(num_ex=5)
             gen_images = generator.predict_on_batch([noise1, f_labels_one_hot])
-
-            for i, img_array in enumerate(gen_images):
+            print(gen_images.shape, type(gen_images))
+            for i, img_array in enumerate(gen_images[:5]):
                 dirr = args.save_dir + 'training_imgs/epoch' + str(epoch) + '/'
                 if not os.path.exists(dirr):
                     os.makedirs(dirr)
