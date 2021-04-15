@@ -71,12 +71,12 @@ def load_meta_data(data_dir_path, mat_file_path, num_images):
     full_path_label_array = np.vstack([cat0_random, cat1_random, cat2_random, cat3_random, cat4_random, cat5_random])
 
     label_array = full_path_label_array[:, 1]
-    full_image_path_list = list(full_path_label_array[:, 0])
+    new_image_path_list = list(full_path_label_array[:, 0])
 
     # creating one hot of label_array
     label_one_hot = tf.one_hot(label_array, depth=6)
 
-    return full_image_path_list, label_one_hot
+    return new_image_path_list, label_one_hot
 
 
 def convert_age_to_label(age):

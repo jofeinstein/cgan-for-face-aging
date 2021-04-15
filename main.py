@@ -129,9 +129,6 @@ def cgan_training(image_array, label_one_hot, generator, discriminator, cgan):
 
     print("Training cGAN...")
 
-    true_labels = np.ones((args.batch_size, 1))
-    fake_labels = np.zeros((args.batch_size, 1))
-
     d_loss1 = []
     d_loss2 = []
     cgan_loss_lst = []
@@ -144,7 +141,9 @@ def cgan_training(image_array, label_one_hot, generator, discriminator, cgan):
         for x in range(0, len(image_array), args.batch_size):
             batch_images = image_array[x: x + args.batch_size]
             batch_labels = label_one_hot[x: x + args.batch_size]
-            noise1, noise2, f_labels_one_hot = gen_fake_data()
+            noise1, noise2, f_labels_one_hot = gen_fake_data(len(batch_labels))
+            true_labels = np.ones((len(batch_labels), 1))
+            fake_labels = np.zeros((len(batch_labels), 1))
 
             # training discriminator
             gen_images = generator.predict_on_batch([noise1, batch_labels])
@@ -216,7 +215,6 @@ def encoder_training(generator):
     except RuntimeError:
         print("Could not find weights for generator. Ensure weights are stored in data/weights/generator.h5")
 
-
     # create random labels and latent vectors for training
     r_labels = np.random.randint(0, num_classes, args.encoder_train_size)
     r_labels_one_hot = tf.one_hot(np.asarray(r_labels), depth=num_classes)
@@ -254,6 +252,8 @@ def main():
     # Load in data
     full_image_path_list, label_one_hot = load_meta_data(args.data_dir_path, args.mat_file_path, args.num_images)
     image_array = load_images(full_image_path_list)
+
+    print(len(full_image_path_list), label_one_hot.shape, image_array.shape)
 
     # compile generator, discriminator, cgan
     generator, discriminator = compile_gen_disc()
