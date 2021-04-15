@@ -3,19 +3,22 @@ import scipy.io
 from datetime import datetime
 from PIL import Image
 import numpy as np
+import tensorflow as tf
 
 
-def load_meta_data(data_dir_path, mat_file_path):
+def load_meta_data(data_dir_path, mat_file_path, image_num=100000):
     """
     Loads paths of all images and the corresponding labels from matlab file
 
     :param data_dir_path: path to the data directory
     :param mat_file_path: path to the matlab meta information file
+    :param image_num: number of images to use from dataset
     :return: list of image paths and list of corresponding labels
     """
 
     print("Loading meta information...")
 
+    # retrieving path, birthday, and photo data info from matlab file
     mat_file = scipy.io.loadmat(mat_file_path)
     relative_image_path_list = mat_file['imdb'][0, 0]["full_path"][0]
 
@@ -26,11 +29,20 @@ def load_meta_data(data_dir_path, mat_file_path):
 
     label_list = []
 
+    # converting birthday and photo date to age labels
     for i, path in enumerate(full_image_path_list):
         age = photo_taken_year[i] - datetime.fromordinal(birthday[i]).year
         label_list.append(convert_age_to_label(age))
 
-    return full_image_path_list, label_list
+    # randomly selecting image_num images from dataset
+    random_indices = np.random.choice(np.arange(len(label_list)), image_num, replace=False)
+    full_image_path_list = list(np.asarray(full_image_path_list)[random_indices])
+    label_array = np.asarray(label_list)[random_indices]
+
+    # creating one hot of label_array
+    label_one_hot = tf.one_hot(label_array, depth=len(set(label_list)))
+
+    return full_image_path_list, label_one_hot
 
 
 def convert_age_to_label(age):
@@ -55,7 +67,7 @@ def convert_age_to_label(age):
     return label
 
 
-def load_images_and_labels(image_path_list, image_size=(64, 64)):
+def load_images(image_path_list, image_size=(64, 64)):
     """
     Loads and resizes all images in dataset
 
@@ -63,13 +75,11 @@ def load_images_and_labels(image_path_list, image_size=(64, 64)):
     :param image_size: size tuple (width, height) to resize images to
     :return: numpy array of size (num_images, width, height) containing all images
     """
+    print('Loading images into array...')
+
     image_list = []
 
-    print('Loading images into array...')
     for i, image_path in enumerate(image_path_list):
-        # if i == 2560:
-        #     break
-
         if i % 1000 == 0:
             print('{} / {}'.format(i, len(image_path_list)))
         img = Image.open(image_path)
