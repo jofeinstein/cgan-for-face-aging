@@ -8,6 +8,9 @@ from fr_model import FaceRecognition
 import argparse
 import os
 
+print("Num GPUs Available: ", len(tf.config.list_physical_devices('GPU')))
+tf.debugging.set_log_device_placement(True)
+
 
 def getArgs():
     parser = argparse.ArgumentParser('python')
@@ -115,6 +118,8 @@ def cgan_training(image_array, label_one_hot, generator, discriminator, cgan):
     :return: A crisp high five
     """
 
+    print("Training cGAN...")
+
     true_labels = np.ones((args.batch_size, 1))
     fake_labels = np.zeros((args.batch_size, 1))
 
@@ -178,6 +183,8 @@ def encoder_training(generator):
     :param generator: compiled generator model
     :return: sadness
     """
+
+    print("Training encoder...")
 
     # compile encoder and load generator weights
     encoder = Encoder()
