@@ -192,8 +192,8 @@ def cgan_training(image_array, label_one_hot, generator, discriminator, cgan):
 
         # save weights every 50 epochs
         if (epoch + 1) % 50 == 0:
-            generator.save(args.save_dir + "weights/generator_checkpoint{}.h5".format(str(epoch)))
-            discriminator.save(args.save_dir + "weights/discriminator_checkpoint{}.h5".format(str(epoch)))
+            generator.save(args.save_dir + "weights/generator_checkpoint{}.tf".format(str(epoch)), save_format="tf")
+            discriminator.save(args.save_dir + "weights/discriminator_checkpoint{}.tf".format(str(epoch)), save_format="tf")
 
         avg_d_loss = (np.mean(d_batch_loss1) + np.mean(d_batch_loss2)) / 2
         print("Epoch: {} / {}        Discriminator Loss: {}      cGAN Loss: {}      Time Elapsed: {}s".format(epoch + 1, args.num_epochs,
