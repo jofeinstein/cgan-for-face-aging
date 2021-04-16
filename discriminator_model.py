@@ -12,7 +12,7 @@ class Discriminator(tf.keras.Model):
         self.optimizer = tf.keras.optimizers.Adam()
 
         self.embedding = Embedding(input_dim=6, output_dim=1024)
-        self.dense_e = Dense(1024)
+        # self.dense_e = Dense(1024)
         self.reshape = Reshape((32, 32, 6))
 
         self.conv1 = Conv2D(64, kernel_size=3, strides=2, padding='same')
