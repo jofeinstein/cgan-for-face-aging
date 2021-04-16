@@ -42,9 +42,9 @@ def getArgs():
                         type=int,
                         help='number of examples to train encoder on',
                         required=False)
-    parser.add_argument('-training_step',
-                        help='which step of training process',
-                        choices=['initial_cgan', 'encoder', 'optimization'],
+    parser.add_argument('-phase',
+                        help='phase of the training process',
+                        choices=['cgan', 'encoder', 'optimization'],
                         default=None,
                         required=True)
     parser.add_argument('-num_images',
@@ -64,8 +64,7 @@ image_shape = (64, 64, 3)
 
 def plot_list(lst, title):
     fig = plt.figure()
-    for i in range(len(lst)):
-        plt.plot(lst[i])
+    plt.plot(lst)
     plt.xlabel('Epoch')
     plt.ylabel(title)
     plt.title(title)
@@ -179,8 +178,9 @@ def cgan_training(image_array, label_one_hot, generator, discriminator, cgan):
 
         # generate 5 test images every 5 epochs and save
         if (epoch + 1) % 5 == 0:
-            noise1, noise2, f_labels_one_hot = gen_fake_data(num_ex=5)
-            gen_images = generator.predict_on_batch([noise1, f_labels_one_hot])
+            noise1 = np.random.normal(0, 1, size=(5, latent_dim))
+            print(noise1.shape, label_one_hot[0:5].shape)
+            gen_images = generator.predict_on_batch([noise1, label_one_hot[0:5]])
 
             for i in range(gen_images.shape[0]):
                 dirr = args.save_dir + 'training_imgs/epoch' + str(epoch) + '/'
@@ -191,10 +191,15 @@ def cgan_training(image_array, label_one_hot, generator, discriminator, cgan):
                 img = Image.fromarray(((img_array * 255).astype(np.uint8)))
                 img.save(dirr + str(i) + 'test.png')
 
+        # save weights every 50 epochs
+        if (epoch + 1) % 50 == 0:
+            generator.save_weights(args.save_dir + "weights/generator_checkpoint{}.h5".format(str(epoch)))
+            discriminator.save_weights(args.save_dir + "weights/discriminator_checkpoint{}.h5".format(str(epoch)))
+
         avg_d_loss = (np.mean(d_batch_loss1) + np.mean(d_batch_loss2)) / 2
         print("Epoch: {} / {}        Discriminator Loss: {}      cGAN Loss: {}      Time Elapsed: {}s".format(epoch + 1, args.num_epochs,
                                                                                       avg_d_loss,
-                                                                                      np.mean(cgan_loss_batch_lst), time.time() - start_time))
+                                                                                      np.mean(cgan_loss_batch_lst), round(time.time() - start_time, 2)))
 
     # save weights and losses
     if not os.path.exists(args.save_dir + 'weights'):
@@ -218,7 +223,6 @@ def cgan_training(image_array, label_one_hot, generator, discriminator, cgan):
     plot_list(avg_discriminator_loss_lst, "discriminator_loss")
 
 
-
 def encoder_training(generator):
     """
     Training loop for encoder. Must be run after initial cGAN training.
@@ -235,8 +239,9 @@ def encoder_training(generator):
 
     try:
         generator.load_weights(args.save_dir + "weights/generator.h5")
-    except RuntimeError:
-        print("Could not find weights for generator. Ensure weights are stored in data/weights/generator.h5")
+    except OSError:
+        print("Error: Could not find weights for generator. Ensure weights are stored in data/weights/generator.h5")
+        return
 
     # create random labels and latent vectors for training
     r_labels = np.random.randint(0, num_classes, args.encoder_train_size)
@@ -281,16 +286,14 @@ def main():
     full_image_path_list, label_one_hot = load_meta_data(args.data_dir_path, args.mat_file_path, args.num_images)
     image_array = load_images(full_image_path_list)
 
-    print(len(full_image_path_list), label_one_hot.shape, image_array.shape)
-
     # compile generator, discriminator, cgan
     generator, discriminator = compile_gen_disc()
     cgan = compile_cgan(generator, discriminator)
 
-    if args.training_step == 'initial_cgan':
+    if args.phase == 'cgan':
         cgan_training(image_array, label_one_hot, generator, discriminator, cgan)
 
-    elif args.training_step == 'encoder':
+    elif args.phase == 'encoder':
         encoder_training(generator)
 
 
