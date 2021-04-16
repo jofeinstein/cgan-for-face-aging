@@ -177,7 +177,7 @@ def cgan_training(image_array, label_one_hot, generator, discriminator, cgan):
         cgan_loss_lst.append(np.mean(cgan_loss_batch_lst))
 
         # generate 5 test images every 5 epochs and save
-        if (epoch + 1) % 5 == 0:
+        if (epoch + 1) % 5 == 0 or (epoch + 1) == args.num_epochs:
             noise1 = np.random.normal(0, 1, size=(5, latent_dim))
             print(noise1.shape, label_one_hot[0:5].shape)
             gen_images = generator.predict_on_batch([noise1, label_one_hot[0:5]])
@@ -221,6 +221,8 @@ def cgan_training(image_array, label_one_hot, generator, discriminator, cgan):
     for i in range(len(d_loss1)):
         avg_discriminator_loss_lst.append(np.mean([d_loss1[i], d_loss2[i]]))
     plot_list(avg_discriminator_loss_lst, "discriminator_loss")
+
+    print("I'm so tired... let me sleep...")
 
 
 def encoder_training(generator):
