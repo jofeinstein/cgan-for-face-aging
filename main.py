@@ -59,7 +59,7 @@ def getArgs():
 args = getArgs()
 latent_dim = 100
 num_classes = 6
-image_shape = (64, 64, 3)
+image_shape = (128, 128, 3)
 
 
 def plot_list(lst, title):
@@ -285,7 +285,13 @@ def encoder_training(generator):
 def main():
     # Load in data
     full_image_path_list, label_one_hot = load_meta_data(args.data_dir_path, args.mat_file_path, args.num_images)
-    image_array = load_images(full_image_path_list)
+    image_array = load_images(full_image_path_list, (128, 128))
+
+    # from matplotlib import pyplot as plt
+    # for i in range(5):
+    #     print(label_one_hot[i], full_image_path_list[i])
+    #     plt.imshow(image_array[i], interpolation='nearest')
+    #     plt.show()
 
     # compile generator, discriminator, cgan
     generator, discriminator = compile_gen_disc()

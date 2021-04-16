@@ -28,7 +28,12 @@ class Generator(tf.keras.Model):
         self.leakyrelu3 = LeakyReLU()
 
         self.upsample3 = UpSampling2D(size=(2, 2))
-        self.conv3 = Conv2D(filters=3, kernel_size=5, padding='same')
+        self.conv3 = Conv2D(filters=32, kernel_size=5, padding='same')
+        self.batchnorm3 = BatchNormalization()
+        self.leakyrelu4 = LeakyReLU()
+
+        self.upsample4 = UpSampling2D(size=(2, 2))
+        self.conv4 = Conv2D(filters=3, kernel_size=5, padding='same')
         self.tanh = Activation('tanh')
 
     def call(self, input):
@@ -56,6 +61,11 @@ class Generator(tf.keras.Model):
 
         x = self.upsample3(x)
         x = self.conv3(x)
+        x = self.batchnorm3(x)
+        x = self.leakyrelu4(x)
+
+        x = self.upsample4(x)
+        x = self.conv4(x)
         x = self.tanh(x)
 
         return x
