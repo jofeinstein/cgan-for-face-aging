@@ -11,7 +11,7 @@ class Discriminator(tf.keras.Model):
 
         self.optimizer = tf.keras.optimizers.Adam()
 
-        self.embedding = Embedding(input_dim=6, output_dim=16)
+        self.embedding = Embedding(input_dim=6, output_dim=1024)
         self.dense_e = Dense(1024)
         self.reshape = Reshape((32, 32, 6))
 
@@ -43,7 +43,7 @@ class Discriminator(tf.keras.Model):
         x = self.leakyrelu1(x)
 
         label = self.embedding(label)
-        label = self.dense_e(label)
+        # label = self.dense_e(label)
         label = self.reshape(label)
 
         # check concatenation: FUCK
