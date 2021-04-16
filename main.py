@@ -179,7 +179,6 @@ def cgan_training(image_array, label_one_hot, generator, discriminator, cgan):
         # generate 5 test images every 5 epochs and save
         if (epoch + 1) % 5 == 0 or (epoch + 1) == args.num_epochs:
             noise1 = np.random.normal(0, 1, size=(5, latent_dim))
-            print(noise1.shape, label_one_hot[0:5].shape)
             gen_images = generator.predict_on_batch([noise1, label_one_hot[0:5]])
 
             for i in range(gen_images.shape[0]):
