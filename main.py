@@ -283,10 +283,6 @@ def encoder_training(generator):
 
 
 def main():
-    # Load in data
-    full_image_path_list, label_one_hot = load_meta_data(args.data_dir_path, args.mat_file_path, args.num_images)
-    image_array = load_images(full_image_path_list, (128, 128))
-
     # from matplotlib import pyplot as plt
     # for i in range(5):
     #     print(label_one_hot[i], full_image_path_list[i])
@@ -298,6 +294,10 @@ def main():
     cgan = compile_cgan(generator, discriminator)
 
     if args.phase == 'cgan':
+        # Load in data
+        full_image_path_list, label_one_hot = load_meta_data(args.data_dir_path, args.mat_file_path, args.num_images)
+        image_array = load_images(full_image_path_list, (128, 128))
+
         cgan_training(image_array, label_one_hot, generator, discriminator, cgan)
 
     elif args.phase == 'encoder':
