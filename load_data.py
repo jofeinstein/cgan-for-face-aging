@@ -109,13 +109,13 @@ def load_images(image_path_list, image_size=(64, 64)):
     :param image_size: size tuple (width, height) to resize images to
     :return: numpy array of size (num_images, width, height) containing all images
     """
-    print('Loading images into array...')
+    # print('Loading images into array...')
 
     image_list = []
 
     for i, image_path in enumerate(image_path_list):
-        if i % 1000 == 0:
-            print('{} / {}'.format(i, len(image_path_list)))
+        # if i % 1000 == 0:
+        #     print('{} / {}'.format(i, len(image_path_list)))
         img = Image.open(image_path)
         img = img.resize(image_size)
         img = np.array(img, dtype=np.float32)
