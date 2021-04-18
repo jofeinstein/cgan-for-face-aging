@@ -10,7 +10,7 @@ import os
 import time
 from matplotlib import pyplot as plt
 
-print("Num GPUs Available: ", len(tf.config.list_physical_devices('GPU')))
+print("\nNum GPUs Available: {}\n".format(len(tf.config.list_physical_devices('GPU'))))
 # tf.debugging.set_log_device_placement(True)
 
 
@@ -140,7 +140,7 @@ def cgan_training(image_path_array, label_one_hot, generator, discriminator, cga
     :return: A crisp high five
     """
 
-    print("Training cGAN...")
+    print("\nTraining cGAN...\n")
 
     d_loss1 = []
     d_loss2 = []
@@ -155,7 +155,6 @@ def cgan_training(image_path_array, label_one_hot, generator, discriminator, cga
         for x in range(0, len(image_path_array), args.batch_size):
             batch_paths = image_path_array[x: x + args.batch_size]
             batch_images = load_images(batch_paths, (128, 128))
-            print(batch_images.shape, batch_paths.shape)
             batch_labels = label_one_hot[x: x + args.batch_size]
             noise1, noise2, f_labels_one_hot = gen_fake_data(len(batch_labels))
             true_labels = np.ones((len(batch_labels), 1))
