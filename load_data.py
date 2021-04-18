@@ -111,7 +111,7 @@ def load_images(image_path_list, image_size=(64, 64)):
     """
     print('Loading images into array...')
 
-    image_array = None
+    image_array = np.zeros((len(image_path_list), image_size[0], image_size[1], 3))
 
     for i, image_path in enumerate(image_path_list):
         if i % 1000 == 0:
@@ -126,11 +126,6 @@ def load_images(image_path_list, image_size=(64, 64)):
 
         img = np.expand_dims(img, axis=0)
 
-        if image_array is None:
-            image_array = img
-        else:
-            image_array = np.concatenate([image_array, img], axis=0)
-
-    # image_array = np.stack(image_list, axis=0)
+        image_array[i] = img
 
     return image_array
