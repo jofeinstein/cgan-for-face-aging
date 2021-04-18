@@ -13,6 +13,10 @@ from matplotlib import pyplot as plt
 print("\nNum GPUs Available: {}\n".format(len(tf.config.list_physical_devices('GPU'))))
 # tf.debugging.set_log_device_placement(True)
 
+gpus = tf.config.experimental.list_physical_devices('GPU')
+for gpu in gpus:
+    tf.config.experimental.set_memory_growth(gpu, True)
+
 
 def getArgs():
     parser = argparse.ArgumentParser('python')
