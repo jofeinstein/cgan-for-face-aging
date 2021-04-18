@@ -128,11 +128,11 @@ def gen_fake_data(num_ex=args.batch_size):
     return noise1, noise2, f_labels_one_hot
 
 
-def cgan_training(image_path_array, label_one_hot, generator, discriminator, cgan):
+def cgan_training(image_array, label_one_hot, generator, discriminator, cgan):
     """
     Training loop for initial cGAN training. Must be trained before other optimizations.
 
-    :param image_path_array: 1d array containing all image paths
+    :param image_array: 4d array containing all training images. shape (batch, height, width, channels)
     :param label_one_hot: 2d array containing one hot vectors that correspond to labels of images in image_array
     :param generator: compiled generator model
     :param discriminator: compiled discriminator model
@@ -152,9 +152,8 @@ def cgan_training(image_path_array, label_one_hot, generator, discriminator, cga
         cgan_loss_batch_lst = []
         start_time = time.time()
 
-        for x in range(0, len(image_path_array), args.batch_size):
-            batch_paths = image_path_array[x: x + args.batch_size]
-            batch_images = load_images(batch_paths, (128, 128))
+        for x in range(0, len(image_array), args.batch_size):
+            batch_images = image_array[x: x + args.batch_size]
             batch_labels = label_one_hot[x: x + args.batch_size]
             noise1, noise2, f_labels_one_hot = gen_fake_data(len(batch_labels))
             true_labels = np.ones((len(batch_labels), 1))
@@ -297,9 +296,9 @@ def main():
     if args.phase == 'cgan':
         # Load in data
         full_image_path_list, label_one_hot = load_meta_data(args.data_dir_path, args.mat_file_path, args.num_images)
-        #image_array = load_images(full_image_path_list, (128, 128))
+        image_array = load_images(full_image_path_list, (128, 128))
 
-        cgan_training(np.asarray(full_image_path_list), label_one_hot, generator, discriminator, cgan)
+        cgan_training(image_array, label_one_hot, generator, discriminator, cgan)
 
     elif args.phase == 'encoder':
         encoder_training(generator)
