@@ -98,7 +98,7 @@ def compile_cgan(generator_model, discriminator_model):
     return model
 
 
-def compile_gen_disc():
+def compile_generator():
     """
     Compiles generator and discriminator models
 
@@ -108,11 +108,23 @@ def compile_gen_disc():
     generator((tf.keras.Input(shape=(latent_dim,)), tf.keras.Input(shape=(num_classes,))))
     generator.compile(optimizer=generator.optimizer, loss='binary_crossentropy')
 
+    return generator
+
+
+def compile_discriminator():
     discriminator = Discriminator()
     discriminator((tf.keras.Input(shape=image_shape), tf.keras.Input(shape=(num_classes,))))
     discriminator.compile(optimizer=discriminator.optimizer, loss='binary_crossentropy')
 
-    return generator, discriminator
+    return discriminator
+
+
+def compile_encoder():
+    encoder = Encoder()
+    encoder(tf.keras.Input(shape=(96, 96, 3)))
+    encoder.compile(optimizer=encoder.optimizer, loss='binary_crossentropy')
+
+    return encoder
 
 
 def euclidean_distance_loss(y_true, y_pred):
@@ -251,7 +263,7 @@ def cgan_training(image_array, label_one_hot, generator, discriminator, cgan):
     print("I'm so tired... let me sleep...")
 
 
-def encoder_training(generator):
+def encoder_training(encoder, generator):
     """
     Training loop for encoder. Must be run after initial cGAN training.
     :param generator: compiled generator model
@@ -260,10 +272,7 @@ def encoder_training(generator):
 
     print("Training encoder...")
 
-    # compile encoder and load generator weights
-    encoder = Encoder()
-    encoder(tf.keras.Input(shape=(96, 96, 3)))
-    encoder.compile(optimizer=encoder.optimizer, loss='binary_crossentropy')
+    # load generator weights
 
     try:
         generator.load_weights(args.save_dir + "weights/generator.h5")
@@ -310,7 +319,16 @@ def encoder_training(generator):
 
 
 def fr_optimzation_training(image_array, label_one_hot, generator, encoder):
+    # compile fr models
     fr_model, fr_adversarial = compile_fr(generator, encoder)
+
+    # load encoder and generator weights
+    try:
+        encoder.load_weights(args.save_dir + "weights/encoder.h5")
+        generator.load_weights(args.save_dir + "weights/generator.h5")
+    except OSError:
+        print("Error: Could not find weights for generator or encoder. Ensure weights are stored in data/weights/")
+        return
 
     loss_lst = []
     for epoch in range(args.num_epochs):
@@ -327,6 +345,7 @@ def fr_optimzation_training(image_array, label_one_hot, generator, encoder):
 
         loss_lst.append(np.mean(batch_loss))
 
+        # generate test images every 5 epochs
         if (epoch + 1) % 5 == 0 or (epoch + 1) == args.num_epochs:
             noise1 = np.random.normal(0, 1, size=(5, latent_dim))
             gen_images = generator.predict_on_batch([noise1, label_one_hot[0:5]])
@@ -362,7 +381,6 @@ def fr_optimzation_training(image_array, label_one_hot, generator, encoder):
     plot_list(loss_lst, "reconstruction_loss")
 
 
-
 def main():
     # from matplotlib import pyplot as plt
     # for i in range(5):
@@ -371,12 +389,13 @@ def main():
     #     plt.show()
 
     # compile generator, discriminator, cgan
-    generator, discriminator = compile_gen_disc()
-    print(discriminator.summary())
-    cgan = compile_cgan(generator, discriminator)
-    print(cgan.summary())
 
     if args.phase == 'cgan':
+        # compile models
+        generator = compile_generator()
+        discriminator = compile_discriminator()
+        cgan = compile_cgan(generator, discriminator)
+
         # Load in data
         full_image_path_list, label_one_hot = load_meta_data(args.data_dir_path, args.mat_file_path, args.num_images)
         image_array = load_images(full_image_path_list, (64, 64))
@@ -384,7 +403,22 @@ def main():
         cgan_training(image_array, label_one_hot, generator, discriminator, cgan)
 
     elif args.phase == 'encoder':
-        encoder_training(generator)
+        # compile models
+        encoder = compile_encoder()
+        generator = compile_generator()
+
+        encoder_training(encoder, generator)
+
+    elif args.phase == 'optimization':
+        # compile models
+        generator = compile_generator()
+        encoder = compile_encoder()
+
+        # Load data
+        full_image_path_list, label_one_hot = load_meta_data(args.data_dir_path, args.mat_file_path, args.num_images)
+        image_array = load_images(full_image_path_list, (64, 64))
+
+        fr_optimzation_training(image_array, label_one_hot, generator, encoder)
 
 
 main()
