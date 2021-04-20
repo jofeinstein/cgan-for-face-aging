@@ -63,7 +63,7 @@ def getArgs():
 args = getArgs()
 latent_dim = 100
 num_classes = 6
-image_shape = (128, 128, 3)
+image_shape = (96, 96, 3)
 
 
 def plot_list(lst, title):
@@ -107,10 +107,12 @@ def compile_gen_disc():
     generator = Generator()
     generator((tf.keras.Input(shape=(latent_dim,)), tf.keras.Input(shape=(num_classes,))))
     generator.compile(optimizer=generator.optimizer, loss='binary_crossentropy')
+    print(generator.summary())
 
     discriminator = Discriminator()
     discriminator((tf.keras.Input(shape=image_shape), tf.keras.Input(shape=(num_classes,))))
     discriminator.compile(optimizer=discriminator.optimizer, loss='binary_crossentropy')
+    print(discriminator.summary())
 
     return generator, discriminator
 
@@ -300,7 +302,7 @@ def main():
     if args.phase == 'cgan':
         # Load in data
         full_image_path_list, label_one_hot = load_meta_data(args.data_dir_path, args.mat_file_path, args.num_images)
-        image_array = load_images(full_image_path_list, (128, 128))
+        image_array = load_images(full_image_path_list, (96, 96))
 
         cgan_training(image_array, label_one_hot, generator, discriminator, cgan)
 
