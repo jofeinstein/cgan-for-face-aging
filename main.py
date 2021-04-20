@@ -107,12 +107,10 @@ def compile_gen_disc():
     generator = Generator()
     generator((tf.keras.Input(shape=(latent_dim,)), tf.keras.Input(shape=(num_classes,))))
     generator.compile(optimizer=generator.optimizer, loss='binary_crossentropy')
-    print(generator.summary())
 
     discriminator = Discriminator()
     discriminator((tf.keras.Input(shape=image_shape), tf.keras.Input(shape=(num_classes,))))
     discriminator.compile(optimizer=discriminator.optimizer, loss='binary_crossentropy')
-    print(discriminator.summary())
 
     return generator, discriminator
 
@@ -297,7 +295,9 @@ def main():
 
     # compile generator, discriminator, cgan
     generator, discriminator = compile_gen_disc()
+    print(discriminator.summary())
     cgan = compile_cgan(generator, discriminator)
+    print(cgan.summary())
 
     if args.phase == 'cgan':
         # Load in data

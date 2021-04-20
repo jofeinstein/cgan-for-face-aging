@@ -11,13 +11,13 @@ class Generator(tf.keras.Model):
 
         self.optimizer = tf.keras.optimizers.Adam()
 
-        self.reshape = Reshape((6, 6, 256))
+        self.reshape = Reshape((6, 6, 192))
 
         self.dense1 = Dense(2048)
         self.leakyrelu1 = LeakyReLU()
         self.dropout1 = Dropout(0.2)
 
-        self.dense2 = Dense(256 * 6 * 6)
+        self.dense2 = Dense(192 * 6 * 6)
         self.batchnorma = BatchNormalization()
         self.leakyrelua = LeakyReLU()
         self.dropouta = Dropout(0.2)
