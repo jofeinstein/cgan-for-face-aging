@@ -63,7 +63,7 @@ def getArgs():
 args = getArgs()
 latent_dim = 100
 num_classes = 6
-image_shape = (96, 96, 3)
+image_shape = (64, 64, 3)
 
 
 def plot_list(lst, title):
@@ -113,6 +113,29 @@ def compile_gen_disc():
     discriminator.compile(optimizer=discriminator.optimizer, loss='binary_crossentropy')
 
     return generator, discriminator
+
+
+def euclidean_distance_loss(y_true, y_pred):
+    return tf.math.sqrt(tf.math.reduce_sum(tf.math.square(y_pred - y_true), axis=-1))
+
+
+def compile_fr(generator, encoder):
+    image = tf.keras.Input(image_shape)
+    label = tf.keras.Input((num_classes,))
+
+    fr_model = FaceRecognition()
+    fr_model(image)
+    fr_model.compile(optimizer=fr_model.optimizer, loss='binary_crossentropy')
+
+    fr_model.trainable = False
+    laten_vector = encoder(image)
+    gen_images = generator([laten_vector, label])
+
+    embeddings = fr_model(gen_images)
+    fr_adversarial = tf.keras.Model([image, label], embeddings)
+    fr_adversarial.compile(optimizer='adam', loss=euclidean_distance_loss)
+
+    return fr_model, fr_adversarial
 
 
 def gen_fake_data(num_ex=args.batch_size):
@@ -239,7 +262,7 @@ def encoder_training(generator):
 
     # compile encoder and load generator weights
     encoder = Encoder()
-    encoder(tf.keras.Input((64, 64, 3)))
+    encoder(tf.keras.Input(shape=(96, 96, 3)))
     encoder.compile(optimizer=encoder.optimizer, loss='binary_crossentropy')
 
     try:
@@ -286,6 +309,60 @@ def encoder_training(generator):
     plot_list(encoder_loss_lst, "encoder_loss")
 
 
+def fr_optimzation_training(image_array, label_one_hot, generator, encoder):
+    fr_model, fr_adversarial = compile_fr(generator, encoder)
+
+    loss_lst = []
+    for epoch in range(args.num_epochs):
+
+        start_time = time.time()
+        batch_loss = []
+        for x in range(0, len(image_array), args.batch_size):
+            batch_images = image_array[x: x + args.batch_size]
+            batch_labels = label_one_hot[x: x + args.batch_size]
+
+            embeddings = fr_model.predict_on_batch(batch_images)
+            loss = fr_adversarial.train_on_batch([batch_images, batch_labels], embeddings)
+            batch_loss.append(loss)
+
+        loss_lst.append(np.mean(batch_loss))
+
+        if (epoch + 1) % 5 == 0 or (epoch + 1) == args.num_epochs:
+            noise1 = np.random.normal(0, 1, size=(5, latent_dim))
+            gen_images = generator.predict_on_batch([noise1, label_one_hot[0:5]])
+
+            for i in range(gen_images.shape[0]):
+                dirr = args.save_dir + 'training_imgs_optimization/epoch' + str(epoch) + '/'
+                if not os.path.exists(dirr):
+                    os.makedirs(dirr)
+
+                img_array = gen_images[i]
+                img = Image.fromarray(((img_array * 255).astype(np.uint8)))
+                img.save(dirr + str(i) + '_opt_test.png')
+
+        # save weights every 50 epochs
+        if (epoch + 1) % 50 == 0:
+            generator.save(args.save_dir + "weights/generator_opt_checkpoint{}.tf".format(str(epoch)), save_format="tf")
+            encoder.save(args.save_dir + "weights/discriminator_opt_checkpoint{}.tf".format(str(epoch)), save_format="tf")
+
+        print("Epoch: {} / {}        Encoder Loss: {}       Time Elapsed: {}s".format(epoch + 1, args.num_epochs,
+                                                                                      np.mean(batch_loss),
+                                                                                      time.time() - start_time))
+
+    # save weight and losses
+    if not os.path.exists(args.save_dir + 'weights'):
+        os.makedirs(args.save_dir + 'weights')
+    encoder.save_weights(args.save_dir + "weights/encoder_opt.h5")
+    generator.save_weights(args.save_dir + "weights/generator_opt.h5")
+
+    out_el = open(args.save_dir + "training_logs/reconstruction_loss.txt", 'w')
+    print(loss_lst, file=out_el)
+
+    # graph losses
+    plot_list(loss_lst, "reconstruction_loss")
+
+
+
 def main():
     # from matplotlib import pyplot as plt
     # for i in range(5):
@@ -302,7 +379,7 @@ def main():
     if args.phase == 'cgan':
         # Load in data
         full_image_path_list, label_one_hot = load_meta_data(args.data_dir_path, args.mat_file_path, args.num_images)
-        image_array = load_images(full_image_path_list, (96, 96))
+        image_array = load_images(full_image_path_list, (64, 64))
 
         cgan_training(image_array, label_one_hot, generator, discriminator, cgan)
 

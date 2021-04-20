@@ -9,21 +9,15 @@ class FaceRecognition(tf.keras.Model):
         super(FaceRecognition, self).__init__()
 
         self.optimizer = tf.keras.optimizers.Adam()
-
-        self.resnet_pretrained = ResNet50V2(include_top=True, weights='imagenet')
-
+        self.resnet_pretrained = ResNet50V2(include_top=True, weights='imagenet', input_shape=(96, 96, 3))
         self.fc = Dense(128)
 
     def call(self, image):
         """ Passes input image through the network. """
 
-        x = self.resent_model(image)
+        x = self.resnet_pretrained.layers[-1].output
         x = self.fc(x)
+        x = tf.math.l2_normalize(x, axis=-1)
 
         return x
-
-    def loss_function(self, y_true, y_pred):
-        loss_fn = tf.keras.losses.BinaryCrossentropy()
-
-        return loss_fn(y_true, y_pred)
 
