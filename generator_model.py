@@ -11,13 +11,13 @@ class Generator(tf.keras.Model):
 
         self.optimizer = tf.keras.optimizers.Adam()
 
-        self.reshape = Reshape((6, 6, 192))
+        self.reshape = Reshape((8, 8, 256))
 
         self.dense1 = Dense(2048)
         self.leakyrelu1 = LeakyReLU()
         self.dropout1 = Dropout(0.2)
 
-        self.dense2 = Dense(192 * 6 * 6)
+        self.dense2 = Dense(256 * 8 * 8)
         self.batchnorma = BatchNormalization()
         self.leakyrelua = LeakyReLU()
         self.dropouta = Dropout(0.2)
@@ -31,11 +31,6 @@ class Generator(tf.keras.Model):
         self.conv2 = Conv2D(filters=64, kernel_size=5, padding='same')
         self.batchnorm2 = BatchNormalization()
         self.leakyrelu3 = LeakyReLU()
-
-        self.upsample3 = UpSampling2D(size=(2, 2))
-        self.conv3 = Conv2D(filters=32, kernel_size=5, padding='same')
-        self.batchnorm3 = BatchNormalization()
-        self.leakyrelu4 = LeakyReLU()
 
         self.upsample4 = UpSampling2D(size=(2, 2))
         self.conv4 = Conv2D(filters=3, kernel_size=5, padding='same')
@@ -55,7 +50,7 @@ class Generator(tf.keras.Model):
         x = self.dense2(x)
         x = self.batchnorma(x)
         x = self.leakyrelua(x)
-        x = self.batchnorma(x)
+        x = self.dropouta(x)
 
         x = self.reshape(x)
 
@@ -68,11 +63,6 @@ class Generator(tf.keras.Model):
         x = self.conv2(x)
         x = self.batchnorm2(x)
         x = self.leakyrelu3(x)
-
-        x = self.upsample3(x)
-        x = self.conv3(x)
-        x = self.batchnorm3(x)
-        x = self.leakyrelu4(x)
 
         x = self.upsample4(x)
         x = self.conv4(x)

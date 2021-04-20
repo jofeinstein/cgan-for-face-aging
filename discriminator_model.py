@@ -11,9 +11,9 @@ class Discriminator(tf.keras.Model):
 
         self.optimizer = tf.keras.optimizers.Adam()
 
-        self.embedding = Embedding(input_dim=6, output_dim=1024)
-        self.dense_e = Dense(48 * 48)
-        self.reshape = Reshape((48, 48, 6))
+        self.embedding = Embedding(input_dim=6, output_dim=256)
+        self.dense_e = Dense(32 * 32)
+        self.reshape = Reshape((32, 32, 6))
 
         self.conv1 = Conv2D(64, kernel_size=3, strides=2, padding='same')
         self.leakyrelu1 = LeakyReLU()
@@ -41,13 +41,6 @@ class Discriminator(tf.keras.Model):
 
         x = self.conv1(image)
         x = self.leakyrelu1(x)
-
-        # label = tf.expand_dims(label, axis=1)
-        # print(label.shape)
-        # label = tf.expand_dims(label, axis=1)
-        # print(label.shape)
-        # label = tf.tile(label, [1, 32, 32, 1])
-        # print(label.shape)
 
         label = self.embedding(label)
         label = self.dense_e(label)
