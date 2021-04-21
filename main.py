@@ -280,13 +280,13 @@ def encoder_training(encoder, generator):
     :return: sadness
     """
 
-    print("Training encoder...")
+    print("\nTraining encoder...\n")
 
     # load generator weights
 
     try:
-        # generator.load_weights(args.save_dir + "weights/generator.h5")
-        generator = tf.keras.models.load_model(args.save_dir + "weights/generator_checkpoint99")
+        generator.load_weights(args.save_dir + "weights/generator.h5")
+        # generator = tf.keras.models.load_model(args.save_dir + "weights/generator_checkpoint99")
     except OSError:
         print("Error: Could not find weights for generator. Ensure weights are stored in data/weights/generator.h5")
         return
@@ -384,8 +384,8 @@ def fr_optimzation_training(image_array, label_one_hot, generator, encoder):
 
         # save weights every 50 epochs
         if (epoch + 1) % 50 == 0:
-            generator.save(args.save_dir + "weights/generator_opt_checkpoint{}.tf".format(str(epoch)), save_format="tf")
-            encoder.save(args.save_dir + "weights/discriminator_opt_checkpoint{}.tf".format(str(epoch)), save_format="tf")
+            generator.save(args.save_dir + "weights/generator_opt_checkpoint{}".format(str(epoch)), save_format="tf")
+            encoder.save(args.save_dir + "weights/discriminator_opt_checkpoint{}".format(str(epoch)), save_format="tf")
 
         print("Epoch: {} / {}        Encoder Loss: {}       Time Elapsed: {}s".format(epoch + 1, args.num_epochs,
                                                                                       np.mean(batch_loss),
@@ -402,6 +402,8 @@ def fr_optimzation_training(image_array, label_one_hot, generator, encoder):
 
     # graph losses
     plot_list(loss_lst, "reconstruction_loss")
+
+    print("owwww.")
 
 
 def main():
