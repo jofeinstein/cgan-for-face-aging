@@ -101,9 +101,9 @@ def compile_cgan(generator_model, discriminator_model):
 
 def compile_generator():
     """
-    Compiles generator and discriminator models
+    Compiles generator model
 
-    :return: tuple of compiled generator and discriminator models
+    :return: compiled generator model
     """
     generator = Generator()
     generator((tf.keras.Input(shape=(latent_dim,)), tf.keras.Input(shape=(num_classes,))))
@@ -113,6 +113,11 @@ def compile_generator():
 
 
 def compile_discriminator():
+    """
+    Compiles discriminator model
+
+    :return: compiled discriminator model
+    """
     discriminator = Discriminator()
     discriminator((tf.keras.Input(shape=image_shape), tf.keras.Input(shape=(num_classes,))))
     discriminator.compile(optimizer=discriminator.optimizer, loss='binary_crossentropy')
@@ -121,6 +126,11 @@ def compile_discriminator():
 
 
 def compile_encoder():
+    """
+    Compiles encoder model
+
+    :return: compiled encoder model
+    """
     encoder = Encoder()
     encoder(tf.keras.Input(shape=image_shape))
     encoder.compile(optimizer=encoder.optimizer, loss='binary_crossentropy')
@@ -129,10 +139,25 @@ def compile_encoder():
 
 
 def euclidean_distance_loss(y_true, y_pred):
+    """
+    Calculates euclidean distance between two vectors
+
+    :param y_true: resnet embedding from true image
+    :param y_pred: resnet embedding from generated image
+
+    :return: euclidean distance bw two vectors
+    """
     return tf.math.sqrt(tf.math.reduce_sum(tf.math.square(y_pred - y_true), axis=-1))
 
 
 def compile_fr(generator, encoder):
+    """
+    Compiles two face recognition models, one for true images, one for generated images
+
+    :param generator: compiled generator model
+    :param encoder: compiled encoder model
+    :return: tuple of compiled face recognition models (fr_model, fr_adversarial)
+    """
     image = tf.keras.Input(shape=image_shape)
     label = tf.keras.Input(shape=(num_classes,))
     fr_model_optimizer = tf.keras.optimizers.Adam()
@@ -158,6 +183,20 @@ def compile_fr(generator, encoder):
     fr_adversarial.compile(optimizer=fr_adversarial_optimizer, loss=euclidean_distance_loss)
 
     return fr_model, fr_adversarial
+
+
+def compile_resizer():
+    """
+    Compiles a keras resizing model that resizes images from image_shape to (224, 224, 3) for resnet compatibility
+
+    :return: compiled resizing model
+    """
+    image_input = tf.keras.Input(shape=image_shape)
+    resized_image = tf.keras.layers.experimental.preprocessing.Resizing(height=224, width=224)(image_input)
+    resizer = tf.keras.Model(image_input, resized_image)
+    resizer.compile()
+
+    return resizer
 
 
 def gen_fake_data(num_ex=args.batch_size):
@@ -276,7 +315,9 @@ def cgan_training(image_array, label_one_hot, generator, discriminator, cgan):
 def encoder_training(encoder, generator):
     """
     Training loop for encoder. Must be run after initial cGAN training.
+
     :param generator: compiled generator model
+    :param encoder: compiled encoder model
     :return: sadness
     """
 
@@ -335,13 +376,22 @@ def encoder_training(encoder, generator):
 
 
 def fr_optimzation_training(image_array, label_one_hot, generator, encoder):
+    """
+    Training loop to optimize encoder and generator models using face recognition models
+
+    :param image_array: 4d array of training images of size (num_images, height, width, channels)
+    :param label_one_hot: 2d array of one hot labels for training images of size (num_images, num_classes)
+    :param generator: compiled generator model
+    :param encoder: compiled encoder model
+    :return: stress coupled with anxiety
+    """
+    print("\n Optimizing cGAN and encoder... \n")
+
     # compile fr models
     fr_model, fr_adversarial = compile_fr(generator, encoder)
 
-    image_input = tf.keras.Input(shape=(64, 64, 3))
-    resized_image = tf.keras.layers.experimental.preprocessing.Resizing(height=224, width=224)(image_input)
-    resizer = tf.keras.Model(image_input, resized_image)
-    resizer.compile()
+    # compiling keras resizing model
+    resizer = compile_resizer()
 
     # load encoder and generator weights
     try:
@@ -387,7 +437,7 @@ def fr_optimzation_training(image_array, label_one_hot, generator, encoder):
             generator.save(args.save_dir + "weights/generator_opt_checkpoint{}".format(str(epoch)), save_format="tf")
             encoder.save(args.save_dir + "weights/discriminator_opt_checkpoint{}".format(str(epoch)), save_format="tf")
 
-        print("Epoch: {} / {}        Encoder Loss: {}       Time Elapsed: {}s".format(epoch + 1, args.num_epochs,
+        print("Epoch: {} / {}        Reconstruction Loss: {}       Time Elapsed: {}s".format(epoch + 1, args.num_epochs,
                                                                                       np.mean(batch_loss),
                                                                                       time.time() - start_time))
 
