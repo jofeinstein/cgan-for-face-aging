@@ -9,6 +9,7 @@ import argparse
 import os
 import time
 from matplotlib import pyplot as plt
+from tensorflow.keras.applications import ResNet50V2
 
 print("\nNum GPUs Available: {}\n".format(len(tf.config.list_physical_devices('GPU'))))
 # tf.debugging.set_log_device_placement(True)
@@ -121,7 +122,7 @@ def compile_discriminator():
 
 def compile_encoder():
     encoder = Encoder()
-    encoder(tf.keras.Input(shape=(96, 96, 3)))
+    encoder(tf.keras.Input(shape=image_shape))
     encoder.compile(optimizer=encoder.optimizer, loss='binary_crossentropy')
 
     return encoder
@@ -132,20 +133,29 @@ def euclidean_distance_loss(y_true, y_pred):
 
 
 def compile_fr(generator, encoder):
-    image = tf.keras.Input(image_shape)
-    label = tf.keras.Input((num_classes,))
+    image = tf.keras.Input(shape=image_shape)
+    label = tf.keras.Input(shape=(num_classes,))
+    fr_model_optimizer = tf.keras.optimizers.Adam()
+    fr_adversarial_optimizer = tf.keras.optimizers.Adam()
 
-    fr_model = FaceRecognition()
-    fr_model(image)
-    fr_model.compile(optimizer=fr_model.optimizer, loss='binary_crossentropy')
+    resent_model = ResNet50V2(include_top=False, weights='imagenet')
+    image_input = resent_model.input
+    x = resent_model.layers[-1].output
+    x = tf.keras.layers.Dense(128)(x)
+    output = tf.keras.layers.Lambda(lambda x: tf.math.l2_normalize(x, axis=-1))(x)
+    fr_model = tf.keras.Model([image_input], output)
+
+    fr_model.compile(optimizer=fr_model_optimizer, loss='binary_crossentropy')
 
     fr_model.trainable = False
-    laten_vector = encoder(image)
-    gen_images = generator([laten_vector, label])
+    latent_vector = encoder(image)
+    gen_images = generator([latent_vector, label])
 
-    embeddings = fr_model(gen_images)
+    resized = tf.keras.layers.experimental.preprocessing.Resizing(height=224, width=224)(gen_images)
+
+    embeddings = fr_model(resized)
     fr_adversarial = tf.keras.Model([image, label], embeddings)
-    fr_adversarial.compile(optimizer='adam', loss=euclidean_distance_loss)
+    fr_adversarial.compile(optimizer=fr_adversarial_optimizer, loss=euclidean_distance_loss)
 
     return fr_model, fr_adversarial
 
@@ -231,8 +241,8 @@ def cgan_training(image_array, label_one_hot, generator, discriminator, cgan):
 
         # save weights every 50 epochs
         if (epoch + 1) % 50 == 0:
-            generator.save(args.save_dir + "weights/generator_checkpoint{}.tf".format(str(epoch)), save_format="tf")
-            discriminator.save(args.save_dir + "weights/discriminator_checkpoint{}.tf".format(str(epoch)), save_format="tf")
+            generator.save(args.save_dir + "weights/generator_checkpoint{}".format(str(epoch)), save_format="tf")
+            discriminator.save(args.save_dir + "weights/discriminator_checkpoint{}".format(str(epoch)), save_format="tf")
 
         avg_d_loss = (np.mean(d_batch_loss1) + np.mean(d_batch_loss2)) / 2
         print("Epoch: {} / {}        Discriminator Loss: {}      cGAN Loss: {}      Time Elapsed: {}s".format(epoch + 1, args.num_epochs,
@@ -275,7 +285,8 @@ def encoder_training(encoder, generator):
     # load generator weights
 
     try:
-        generator.load_weights(args.save_dir + "weights/generator.h5")
+        # generator.load_weights(args.save_dir + "weights/generator.h5")
+        generator = tf.keras.models.load_model(args.save_dir + "weights/generator_checkpoint99")
     except OSError:
         print("Error: Could not find weights for generator. Ensure weights are stored in data/weights/generator.h5")
         return
@@ -302,6 +313,11 @@ def encoder_training(encoder, generator):
             encoder_loss_batch_lst.append(encoder_loss)
 
         encoder_loss_lst.append(np.mean(encoder_loss_batch_lst))
+
+        # save weights every 50 epochs
+        if (epoch + 1) % 50 == 0:
+            encoder.save(args.save_dir + "weights/encoder_checkpoint{}".format(str(epoch)), save_format="tf")
+
         print("Epoch: {} / {}        Encoder Loss: {}       Time Elapsed: {}s".format(epoch + 1, args.num_epochs,
                                                                                       np.mean(encoder_loss_batch_lst),
                                                                                       time.time() - start_time))
@@ -322,6 +338,11 @@ def fr_optimzation_training(image_array, label_one_hot, generator, encoder):
     # compile fr models
     fr_model, fr_adversarial = compile_fr(generator, encoder)
 
+    image_input = tf.keras.Input(shape=(64, 64, 3))
+    resized_image = tf.keras.layers.experimental.preprocessing.Resizing(height=224, width=224)(image_input)
+    resizer = tf.keras.Model(image_input, resized_image)
+    resizer.compile()
+
     # load encoder and generator weights
     try:
         encoder.load_weights(args.save_dir + "weights/encoder.h5")
@@ -339,7 +360,9 @@ def fr_optimzation_training(image_array, label_one_hot, generator, encoder):
             batch_images = image_array[x: x + args.batch_size]
             batch_labels = label_one_hot[x: x + args.batch_size]
 
-            embeddings = fr_model.predict_on_batch(batch_images)
+            resized_images = resizer.predict_on_batch(batch_images)
+            embeddings = fr_model.predict_on_batch(resized_images)
+
             loss = fr_adversarial.train_on_batch([batch_images, batch_labels], embeddings)
             batch_loss.append(loss)
 
