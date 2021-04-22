@@ -46,7 +46,7 @@ class Discriminator(tf.keras.Model):
         label = self.dense_e(label)
         label = self.reshape(label)
 
-        # check concatenation: FUCK
+        # check concatenation
         x = tf.concat([x, label], axis=3)
 
         x = self.conv2(x)
